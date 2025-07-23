@@ -25,7 +25,7 @@ class RAGPipeline:
         self.chunks = split_text(text)
         embeddings = embed_text_chunks(self.chunks, model_name=self.embedding_model)
         self.vector_store.add(embeddings, self.chunks)
-
+    # The final output function of the pipeline. Vastav can build the /predict here.
     def answer_query(self, query):
         """
         Returns (answer, references) where references is a list of (index, chunk) tuples.
