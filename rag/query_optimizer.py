@@ -6,6 +6,7 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
+# uses gemini LLM to optimize the user query. 
 def optimize_query(query, system_prompt=None, model_name='models/gemini-1.5-flash'):
     """
     Uses Gemini 1.5 Flash (generation model) to optimize/refine the user query for better retrieval.
