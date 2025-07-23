@@ -1,3 +1,8 @@
+# The main RAG pipeline which loads the document, takes the user prompt and provides the LLM output
+# The functionality of the LLM depends on the system prompt. The system prompt has two important parameters
+    # 1. context : the chunks of the document retrieved from the vector database
+    # 2. optimised_query : The query which is entered by the user.
+
 from .document_loader import load_document
 from .text_splitter import split_text
 from .embedder import embed_text_chunks
@@ -31,7 +36,18 @@ class RAGPipeline:
         references = retrieve_relevant_chunks(optimized_query, self.vector_store, self.chunks, model_name=self.embedding_model)
         context = '\n'.join(chunk for _, chunk in references)
         # Generate answer using Gemini 1.5 Flash
-        prompt = f"Context:\n{context}\n\nQuestion: {optimized_query}\nAnswer (cite supporting text from context):"
+        prompt = """
+        You are an expert assistant. Based on the context below, answer the question with:
+- A direct and concise answer
+- Cite specific lines from the context
+- Avoid information not present in the context
+
+Context:
+{context}
+
+Question: {optimized_query}
+Answer:
+        """
         model = genai.GenerativeModel(self.generation_model)
         response = model.generate_content(prompt)
         return response.text.strip(), references 
