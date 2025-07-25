@@ -2,7 +2,6 @@ from .document_loader import load_document
 from .text_splitter import split_text
 from .embedder import embed_text_chunks
 from .vector_store import FaissVectorStore
-from .query_optimizer import optimize_query
 from .retriever import retrieve_relevant_chunks
 import google.generativeai as genai
 
@@ -17,30 +16,33 @@ class RAGPipeline:
 
     def ingest_document(self, link):
         text, _ = load_document(link)
+        if not text or not text.strip():
+            raise ValueError("The document contains no extractable text. Please provide a document with selectable text.")
         self.chunks = split_text(text)
+        if not self.chunks:
+            raise ValueError("The document could not be split into chunks. It may be empty or not processable.")
         embeddings = embed_text_chunks(self.chunks, model_name=self.embedding_model)
+        if not embeddings:
+            raise ValueError("No embeddings could be generated from the document. Please check the document content.")
         self.vector_store.add(embeddings, self.chunks)
 
     def answer_query(self, query):
         """
         Returns (answer, references) where references is a list of (index, chunk) tuples.
         """
-        # Use generation model for query optimization
-        optimized_query = optimize_query(query, model_name=self.generation_model)
-        # Use embedding model for retrieval
-        references = retrieve_relevant_chunks(optimized_query, self.vector_store, self.chunks, model_name=self.embedding_model)
+        if not self.chunks:
+            raise ValueError("No document has been ingested or the document is empty. Please ingest a valid document first.")
+        # Directly use the user query for retrieval and generation
+        references = retrieve_relevant_chunks(query, self.vector_store, self.chunks, model_name=self.embedding_model)
         context = '\n'.join(chunk for _, chunk in references)
         # Generate answer using Gemini 1.5 Flash
         prompt = f"""
-You are an expert assistant. Based on the context below, answer the question with:
-- A direct and concise answer
-- Cite specific lines from the context
-- Avoid information not present in the context
-
+You are an expert assistant. Based on the context, answer the question in a consize way
+If the provided context is insufficient, just assume the nearest correct answer.
 Context:
 {context}
 
-Question: {optimized_query}
+Question: {query}
 Answer:
 """
         model = genai.GenerativeModel(self.generation_model)
