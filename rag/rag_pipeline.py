@@ -26,19 +26,35 @@ class RAGPipeline:
             raise ValueError("No embeddings could be generated from the document. Please check the document content.")
         self.vector_store.add(embeddings, self.chunks)
 
-    def answer_query(self, query):
+    def answer_query(self, query, top_k=5, context_ratio=0.3):
         """
         Returns (answer, references) where references is a list of (index, chunk) tuples.
+        
+        Args:
+            query: The user's question
+            top_k: Number of most relevant chunks to retrieve
+            context_ratio: Ratio of additional context chunks to include (0.0 to 1.0)
         """
         if not self.chunks:
             raise ValueError("No document has been ingested or the document is empty. Please ingest a valid document first.")
-        # Directly use the user query for retrieval and generation
-        references = retrieve_relevant_chunks(query, self.vector_store, self.chunks, model_name=self.embedding_model)
+        
+        # Retrieve relevant chunks with additional context
+        references = retrieve_relevant_chunks(
+            query, 
+            self.vector_store, 
+            self.chunks, 
+            model_name=self.embedding_model,
+            top_k=top_k,
+            context_ratio=context_ratio
+        )
+        
         context = '\n'.join(chunk for _, chunk in references)
+        
         # Generate answer using Gemini 1.5 Flash
         prompt = f"""
-You are an expert assistant. Based on the context, answer the question in a consize way
-If the provided context is insufficient, just assume the nearest correct answer.
+You are an expert assistant. Based on the context, answer the question in a concise way.
+If the provided context is insufficient, just assume the nearest correct answer. The output should be in JSON format.
+
 Context:
 {context}
 
