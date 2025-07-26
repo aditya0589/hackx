@@ -147,4 +147,93 @@ def optimize_chunk_size(text_length, target_chunks=50):
         return 1000  # Default chunk size
     
     optimal_size = max(500, text_length // target_chunks)
-    return min(optimal_size, 2000)  # Cap at 2000 characters 
+    return min(optimal_size, 2000)  # Cap at 2000 characters
+
+def validate_and_split_chunks(chunks, max_bytes=30000):
+    """
+    Validate chunk sizes and split oversized chunks to fit within API limits.
+    
+    Args:
+        chunks: List of text chunks
+        max_bytes: Maximum bytes allowed per chunk (default: 30KB for safety)
+    
+    Returns:
+        List of validated and potentially split chunks
+    """
+    validated_chunks = []
+    
+    for i, chunk in enumerate(chunks):
+        chunk_bytes = len(chunk.encode('utf-8'))
+        
+        if chunk_bytes <= max_bytes:
+            validated_chunks.append(chunk)
+        else:
+            print(f"[WARNING] Chunk {i} is too large ({chunk_bytes} bytes), splitting...")
+            
+            # Split oversized chunk into smaller pieces
+            split_chunks = _split_oversized_chunk(chunk, max_bytes)
+            validated_chunks.extend(split_chunks)
+            
+            print(f"[INFO] Split chunk {i} into {len(split_chunks)} smaller chunks")
+    
+    return validated_chunks
+
+def _split_oversized_chunk(chunk, max_bytes):
+    """
+    Split an oversized chunk into smaller chunks that fit within the byte limit.
+    
+    Args:
+        chunk: The oversized text chunk
+        max_bytes: Maximum bytes allowed per chunk
+    
+    Returns:
+        List of smaller chunks
+    """
+    words = chunk.split()
+    split_chunks = []
+    current_chunk = []
+    current_bytes = 0
+    
+    for word in words:
+        word_bytes = len(word.encode('utf-8')) + 1  # +1 for space
+        
+        # If adding this word would exceed the limit
+        if current_bytes + word_bytes > max_bytes and current_chunk:
+            # Save current chunk
+            split_chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+            current_bytes = word_bytes
+        else:
+            current_chunk.append(word)
+            current_bytes += word_bytes
+    
+    # Add the last chunk if it has content
+    if current_chunk:
+        split_chunks.append(' '.join(current_chunk))
+    
+    return split_chunks
+
+def get_chunk_size_info(chunks):
+    """
+    Get information about chunk sizes for debugging.
+    
+    Args:
+        chunks: List of text chunks
+    
+    Returns:
+        dict: Size information including min, max, average, and oversized chunks
+    """
+    if not chunks:
+        return {'total_chunks': 0}
+    
+    sizes = [len(chunk.encode('utf-8')) for chunk in chunks]
+    oversized = [i for i, size in enumerate(sizes) if size > 30000]
+    
+    return {
+        'total_chunks': len(chunks),
+        'min_bytes': min(sizes),
+        'max_bytes': max(sizes),
+        'avg_bytes': sum(sizes) / len(sizes),
+        'oversized_chunks': len(oversized),
+        'oversized_indices': oversized
+    } 

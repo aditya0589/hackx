@@ -19,7 +19,15 @@ def retrieve_relevant_chunks(query, vector_store, all_chunks, model_name='models
         List of (index, chunk) tuples with relevant and context chunks
     """
     # Get query embedding
-    query_embedding = embed_text_chunks([query], model_name=model_name)[0]
+    query_result = embed_text_chunks([query], model_name=model_name)
+    
+    # Handle the new return format (embeddings, validated_chunks)
+    if isinstance(query_result, tuple):
+        query_embeddings, _ = query_result
+    else:
+        query_embeddings = query_result
+    
+    query_embedding = query_embeddings[0]
     
     # Get the most relevant chunks based on semantic similarity
     relevant_chunks = vector_store.search(query_embedding, top_k=top_k)
