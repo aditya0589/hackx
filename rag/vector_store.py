@@ -15,6 +15,27 @@ class FaissVectorStore:
         else:
             self.index = faiss.IndexFlatL2(dim)
             self.meta = []
+    
+    def clear(self):
+        """
+        Clear all vectors and metadata from the store.
+        """
+        self.index = faiss.IndexFlatL2(self.dim)
+        self.meta = []
+        self.save()
+        print(f"[INFO] Vector store cleared. New index created with dimension {self.dim}")
+    
+    def reset(self):
+        """
+        Reset the vector store by clearing and recreating the index.
+        """
+        self.clear()
+        # Remove existing files
+        if os.path.exists(self.index_path):
+            os.remove(self.index_path)
+        if os.path.exists(self.meta_path):
+            os.remove(self.meta_path)
+        print("[INFO] Vector store files removed and reset")
 
     def add(self, embeddings, metadatas):
         arr = np.array(embeddings).astype('float32')
