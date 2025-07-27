@@ -139,7 +139,7 @@ class RAGPipeline:
         # Generate answer using Gemini 1.5 Flash
         prompt = f"""
 You are an expert assistant. Based on the context, answer the question in a concise way.
-If the provided context is insufficient, just assume the nearest correct answer. The output should be in JSON format.
+If the provided context is insufficient, just assume the nearest correct answer. If query is not related to file return ask queries related to file.
 
 Context:
 {context}
