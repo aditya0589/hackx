@@ -6,3 +6,8 @@ google-generativeai
 python-dotenv
 fastapi
 uvicorn 
+pydantic
+aiohttp
+httpx
+tenacity
+psutil
