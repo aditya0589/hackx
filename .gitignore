@@ -1,0 +1,11 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore FAISS index files
+faiss.index
+faiss_meta.pkl
+
+# Ignore env and temp
+.env
+tmp/
