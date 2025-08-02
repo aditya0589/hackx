@@ -6,3 +6,5 @@ google-generativeai
 python-dotenv
 fastapi
 uvicorn 
+pydantic
+aiohttp

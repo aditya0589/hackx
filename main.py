@@ -1,20 +1,45 @@
-import sys
+from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+from typing import List
+import requests
 from rag.rag_pipeline import RAGPipeline
+from rag.vector_store import FaissVectorStore
 
-if __name__ == "__main__":
-    print("=== RAG Pipeline CLI ===")
-    doc_link = input("Enter the document link (local path or URL): ").strip()
-    query = input("Enter your query: ").strip()
+# App setup
+app = FastAPI()
+bearer_scheme = HTTPBearer()
 
-    rag = RAGPipeline()
-    print("\nIngesting document...")
-    rag.ingest_document(doc_link)
-    print("Document ingested.\n")
+# Constants
+API_TOKEN = "43fb177f633736d5eb2e45b55db7a6f647adf7614fa868c33e8a8f4eb59b4870"
+EMBEDDING_DIM = 768
 
-    print("Answering query...")
-    answer, references = rag.answer_query(query)
-    print("\n=== Answer ===\n")
-    print(answer)
-    print("\n=== References ===\n")
-    for idx, ref in references:
-        print(f"[Chunk {idx}]: {ref[:200]}...\n") 
+# Vector store instance
+vector_store = FaissVectorStore(dim=EMBEDDING_DIM)
+
+# RAG pipeline instance (shared for reuse)
+rag_pipeline = RAGPipeline(embedding_dim=EMBEDDING_DIM, vector_store=vector_store)
+
+# Security
+def verify_token(credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)):
+    if credentials.credentials != API_TOKEN:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+# Request/response schemas
+class RunRequest(BaseModel):
+    documents: str
+    questions: List[str]
+
+class RunResponse(BaseModel):
+    answers: List[str]
+
+# HackRx run route
+@app.post("/hackrx/run", response_model=RunResponse)
+def run(payload: RunRequest, _: None = Depends(verify_token)):
+    try:
+        # Ingest and answer
+        rag_pipeline.ingest_document(link=payload.documents)
+        answers = [rag_pipeline.answer_query(q)[0] for q in payload.questions]
+        return {"answers": answers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
