@@ -2,6 +2,7 @@ import os
 import requests
 from PyPDF2 import PdfReader
 from docx import Document
+from urllib.parse import urlparse, unquote
 
 # Utility to download file from a URL (cloud link)
 def download_file(url, dest_path):
@@ -30,9 +31,12 @@ def load_document(link):
     Returns extracted text and the local file path.
     """
     if link.startswith('http://') or link.startswith('https://'):
-        filename = link.split('/')[-1]
-        local_path = os.path.join('tmp', filename)
+        parsed = urlparse(link)
+        filename = os.path.basename(parsed.path)
+        filename = unquote(filename)
+
         os.makedirs('tmp', exist_ok=True)
+        local_path = os.path.join('tmp', filename)
         download_file(link, local_path)
     else:
         local_path = link
@@ -49,4 +53,4 @@ def load_document(link):
             f"Unsupported file type '{ext}'. Only PDF and DOCX are supported. "
             f"Received file: {local_path}"
         )
-    return text, local_path 
+    return text, local_path

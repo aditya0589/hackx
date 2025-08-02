@@ -40,6 +40,7 @@ def run(payload: RunRequest, _: None = Depends(verify_token)):
         # Ingest and answer
         rag_pipeline.ingest_document(link=payload.documents)
         answers = [rag_pipeline.answer_query(q)[0] for q in payload.questions]
+        print("ANSWERS:", answers)
         return {"answers": answers}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
